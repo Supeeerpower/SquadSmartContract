@@ -1,13 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.3;
-
-// Uncomment this line to use console.log
-import "hardhat/console.sol";
+pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
 import "./interfaces/ICreatorGroup.sol";
 import "./interfaces/IContentNFT.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+
 
 contract Factory {
     // State variables
@@ -21,23 +20,33 @@ contract Factory {
     uint256 public mintFee; // Fee required for minting NFTs
     uint256 public burnFee; // Fee required for burning NFTs
     address public USDC; // Address of the USDC token contract
+    IERC20 public immutable USDC_token;
     address[] public agencies; // Array to store addresses of agencies associated with the contract
-    // Modifier to restrict access to only the contract owner
+    // Events
+    event GroupCreated(
+        address indexed creator,
+        string indexed name,
+        string indexed description,
+        address newDeployedAddress
+    );
+    event NewNFTMinted(address indexed creator, address indexed nftAddress);
+    event WithdrawalFromDevelopmentTeam(address indexed withdrawer, uint256 indexed amount);
+    event TeamScoreChanged(address indexed teamMember, uint256 indexed score);
+        // Modifier to restrict access to only the contract owner
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
         _;
     }
-
-    // Events
-    event GroupCreated(
-        address indexed creator,
-        string name,
-        string description,
-        address newDeployedAddress
-    );
-    event NewNFTMinted(address indexed creator, address indexed nftAddress);
-    event WithdrawalFromDevelopmentTeam(address indexed withdrawer, uint256 amount);
-
+    modifier onlyGroup() {
+        bool flg = false;
+        for(uint256 i = 0; i < numberOfCreators; i++) {
+            if (msg.sender == Creators[i]) {
+                flg = true; break;
+            }
+        }
+        require(flg == true, "Only group can call this function");
+        _;
+    }
     // Constructor to initialize contract variables
     constructor(
         address _implementGroup,
@@ -49,14 +58,20 @@ contract Factory {
         address _USDC
     ) {
         owner = msg.sender;
+        require(_marketplace!= address(0), "marketplace address cannot be 0");
         marketplace = _marketplace;
+        require(_developmentTeam!= address(0), "development team address cannot be 0");
         developmentTeam = _developmentTeam;
         numberOfCreators = 0;
         mintFee = _mintFee;
         burnFee = _burnFee;
+        require(_implementGroup != address(0), "group implementation address cannot be 0");
         implementGroup = _implementGroup;
+        require(_implementContent!= address(0), "content implementation address cannot be 0");
         implementContent = _implementContent;
+        require(_USDC != address(0), "USDC address cannot be 0");
         USDC = _USDC;
+        USDC_token = IERC20(_USDC);
     }
 
     // Function to create a new group
@@ -89,8 +104,13 @@ contract Factory {
         string memory _name,
         string memory _symbol,
         string memory _description
-    ) public returns (address) {
-        IERC20(USDC).transferFrom(msg.sender, address(this), mintFee);
+    ) external onlyGroup returns (address) {
+        uint256 beforeBalance = USDC_token.balanceOf(address(this));
+        if(mintFee > 0) {
+            SafeERC20.safeTransferFrom(USDC_token, msg.sender, address(this), mintFee);
+        }
+        uint256 afterBalance = USDC_token.balanceOf(address(this));
+        require(afterBalance - beforeBalance >= mintFee, "Not enough funds to pay the mint fee");
         address newDeployedAddress = Clones.clone(implementContent);
         IContentNFT(newDeployedAddress).initialize(
             _name,
@@ -108,23 +128,25 @@ contract Factory {
     }
 
     // Function to get the address of a creator group at a specific index
-    function getCreatorGroupAddress(uint256 id) public view returns (address) {
+    function getCreatorGroupAddress(uint256 id) external view returns (address) {
         return Creators[id];
     }
 
     // Function for the development team to withdraw funds
-    function withdraw() public {
+    function withdraw() external {
         require(msg.sender == developmentTeam, "Invalid withdrawer");
         uint256 amount = IERC20(USDC).balanceOf(address(this));
-        IERC20(USDC).approve(address(this), amount);
-        IERC20(USDC).transferFrom(address(this), msg.sender, amount);
+        if(amount > 0) {
+            SafeERC20.safeTransfer(USDC_token, msg.sender, amount) ;
+        }
         emit WithdrawalFromDevelopmentTeam(msg.sender, amount);
     }
 
     function setTeamScoreForCreatorGroup(
         uint256 id,
         uint256 score
-    ) public onlyOwner {
+    ) external onlyOwner {
         ICreatorGroup(Creators[id]).setTeamScore(score);
+        emit TeamScoreChanged(Creators[id], score);
     }
 }

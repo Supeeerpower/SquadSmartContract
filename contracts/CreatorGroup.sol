@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.7.3;
+pragma solidity ^0.8.19;
 
-// Uncomment this line to use console.log
-import "hardhat/console.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "./interfaces/ICreatorGroup.sol";
 import "./interfaces/IFactory.sol";
@@ -10,10 +8,35 @@ import "./interfaces/IMarketplace.sol";
 import "./interfaces/IContentNFT.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 contract CreatorGroup is Initializable, ICreatorGroup {
+    // Struct for transaction candidates
+    struct transaction_candidate {
+        address candidate;
+        bool endState;
+    }
+    // Struct for offering transactions
+    struct transaction_offering {
+        uint256 marketId;
+        uint256 id;
+        address buyer;
+        uint256 price;
+        bool endState;
+    }
+    // Struct for burn transactions
+    struct transaction_burn {
+        uint256 id;
+        bool endState;
+    }
+    struct record_member {
+        address _member;
+        uint256 _percent;
+        uint256 _sum;
+    }
     // State variables
     address public USDC; // USDC token address
+    IERC20 public USDC_token;
     string public name; // Name of the CreatorGroup
     string public description; // Description of the CreatorGroup
     uint256 public mintFee; // Fee for minting NFTs
@@ -37,38 +60,58 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     mapping(uint256 => bool) public soldOutState; // Mapping to track the sold state of NFTs
     mapping(address => mapping(uint256 => uint256)) public revenueDistribution; // Mapping for revenue distribution of NFTs
     mapping(address => mapping(uint256 => uint256)) public getNFTId; // Mapping for getting NFT IDs
-    // Struct for transaction candidates
-    struct transaction_candidate {
-        address candidate;
-        bool endState;
-    }
     transaction_candidate[] public transactions_candidate; // Array of transaction candidates
     mapping(address => mapping(uint256 => bool))
         public confirmTransaction_Candidate; // Mapping for confirm transaction
-    // Struct for offering transactions
-    struct transaction_offering {
-        uint256 marketId;
-        uint256 id;
-        address buyer;
-        uint256 price;
-        bool endState;
-    }
     transaction_offering[] public transactions_offering; // Array of  offering transaction
     mapping(address => mapping(uint256 => bool))
         public confirmTransaction_Offering; // Mapping for offering transaction confirmed state
-    // Struct for burn transactions
-    struct transaction_burn {
-        uint256 id;
-        bool endState;
-    }
     transaction_burn[] public transactions_burn; // Array of  burn transaction
     mapping(address => mapping(uint256 => bool)) public confirmTransaction_Burn; // Mapping for burn transaction confirmed state
-    struct record_member {
-        address _member;
-        uint256 _percent;
-        uint256 _sum;
-    }
     mapping(uint256 => record_member[]) public Recording; // Recording for sold NFT's distribution
+    // events
+    event TeamScoreSet(uint256 value);
+    event NFTMinted(address indexed nftAddress, uint256 indexed nftId);
+    event UploadNFTFromMember(address indexed member, address indexed nftContract, uint256 indexed nftId) ;
+    event NFTBurned(uint256 indexed nftId);
+    event EnglishAuctionListed(
+        uint256 indexed nftId,
+        uint256 indexed initialPrice,
+        uint256 indexed salePeriod
+    );
+    event DutchAuctionListed(
+        uint256 indexed nftId,
+        uint256 indexed initialPrice,
+        uint256 indexed reducingRate,
+        uint256 salePeriod
+    );
+    event OfferingSaleListed(uint256 indexed nftId, uint256 indexed initialPrice);
+    event EnglishAuctionEnded(uint256 indexed nftId);
+    event WithdrawalFromMarketplace();
+    event DirectorSettingProposed(address indexed _candidate);
+    event DirectorSettingExecuted(address indexed _director);
+    event DirectorSettingConfirmed(
+        uint256 indexed index,
+        address indexed from,
+        bool indexed state
+    );
+    event OfferingSaleTransactionProposed(
+        address indexed _tokenContractAddress,
+        uint256 indexed tokenId,
+        address indexed _buyer,
+        uint256 _price
+    );
+    event OfferingSaleTransactionConfirmed(
+        uint256 indexed index,
+        address indexed from,
+        bool indexed state
+    );
+    event OfferingSaleTransactionExecuted(uint256 indexed index);
+    event ConfirmationRequiredNumberSet(uint256 indexed confirmNumber);
+    event WithdrawHappened(address indexed from, uint256 indexed balanceToWithdraw);
+    event LoyaltyFeeReceived(uint256 indexed id, uint256 indexed price);
+    event BurnTransactionProposed(uint256 indexed id);
+    event BurnTransactionConfirmed(uint256 indexed index, address indexed from, bool indexed state);
     // Modifier to restrict access to only director
     modifier onlyDirector() {
         require(
@@ -97,49 +140,6 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         require(msg.sender == factory, "Only factory can call this function.");
         _;
     }
-    // events
-    event TeamScoreSet(uint256 value);
-    event NFTMinted(address indexed nftAddress, uint256 indexed nftId);
-    event NFTBurned(uint256 indexed nftId);
-    event EnglishAuctionListed(
-        uint256 indexed nftId,
-        uint256 initialPrice,
-        uint256 salePeriod
-    );
-    event DutchAuctionListed(
-        uint256 indexed nftId,
-        uint256 initialPrice,
-        uint256 reducingRate,
-        uint256 salePeriod
-    );
-    event OfferingSaleListed(uint256 indexed nftId, uint256 initialPrice);
-    event EnglishAuctionEnded(uint256 indexed nftId);
-    event WithdrawalFromMarketplace();
-    event DirectorSettingProposed(address indexed _candidate);
-    event DirectorSettingExecuted(address indexed _director);
-    event DirectorSettingConfirmed(
-        uint256 indexed index,
-        address from,
-        bool state
-    );
-    event OfferingSaleTransactionProposed(
-        address indexed _tokenContractAddress,
-        uint256 tokenId,
-        address _buyer,
-        uint256 _price
-    );
-    event OfferingSaleTransactionConfirmed(
-        uint256 indexed index,
-        address from,
-        bool state
-    );
-    event OfferingSaleTransactionExecuted(uint256 indexed index);
-    event ConfirmationRequiredNumberSet(uint256 indexed confirmNumber);
-    event withdrawHappened(address indexed from, uint256 balanceToWithdraw);
-    event LoyaltyFeeReceived(uint256 id, uint256 price);
-    event BurnTransactionProposed(uint256 id);
-    event BurnTransactionConfirmed(uint256 index, address from, bool state);
-
     // Function to initialize the CreatorGroup contract with member addresses and other parameters
     function initialize(
         string memory _name,
@@ -150,7 +150,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         uint256 _mintFee,
         uint256 _burnFee,
         address _USDC
-    ) public initializer {
+    ) external initializer {
         name = _name;
         description = _description;
         for (uint256 i = 0; i < _members.length; i++) {
@@ -159,6 +159,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         }
         numberOfMembers = _members.length;
         numConfirmationRequired = _numConfirmationRequired;
+        require(_marketplace != address(0), "Invalid Marketplace Address");
         marketplace = _marketplace;
         mintFee = _mintFee;
         burnFee = _burnFee;
@@ -167,21 +168,23 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         numberOfNFT = 0;
         currentDistributeNumber = 0;
         teamScore = 80;
+        require(_USDC != address(0), "Invalid USDC Address");
         USDC = _USDC;
+        USDC_token = IERC20(USDC);
     }
 
     // Function to add a new member to the CreatorGroup
-    function addMember(address _newMember) public onlyDirector {
+    function addMember(address _newMember) external onlyDirector {
         members.push(_newMember);
         isOwner[_newMember] = true;
         numberOfMembers++;
     }
 
     // Function to remove a member from the CreatorGroup
-    function removeMember(address _removeMember) public onlyMembers {
+    function removeMember(address _removeMember) external onlyMembers {
         require(isOwner[_removeMember] == true, "It's not a member!");
         delete isOwner[_removeMember];
-        uint256 id;
+        uint256 id = 0;
         for (uint256 i = 0; i < members.length; i++) {
             if (members[i] == _removeMember) id = i;
         }
@@ -191,13 +194,14 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     }
 
     // Function to set the team score
-    function setTeamScore(uint256 value) public onlyFactory {
+    function setTeamScore(uint256 value) external onlyFactory {
         teamScore = value;
         emit TeamScoreSet(value);
     }
 
     // Function to receive loyalty fee and distribute immediately automatically
-    function alarmLoyaltyFeeReceived(uint256 nftId, uint256 price) public {
+    function alarmLoyaltyFeeReceived(uint256 nftId, uint256 price) external {
+        require(IContentNFT(msg.sender).creators(nftId) == address(this), "Invalid Alarm!");
         uint256 id = getNFTId[msg.sender][nftId];
         eachDistribution(id, price);
         emit LoyaltyFeeReceived(id, price);
@@ -208,7 +212,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         address contractAddress,
         uint256 nftId,
         uint256 price
-    ) public onlyMarketplace {
+    ) external onlyMarketplace {
         uint256 id = getNFTId[contractAddress][nftId];
         record_member[] memory temp = Recording[id];
         uint256 sum = 0;
@@ -232,8 +236,8 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         string memory _name,
         string memory _symbol,
         string memory _description
-    ) public onlyDirector {
-        IERC20(USDC).approve(factory, mintFee);
+    ) external onlyDirector {
+        USDC_token.approve(factory, mintFee);
         address nftAddress = IFactory(factory).mintNew(
             _nftURI,
             _name,
@@ -255,8 +259,8 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     function mint(
         string memory _nftURI,
         address _targetNFT
-    ) public onlyDirector {
-        IERC20(USDC).approve(_targetNFT, mintFee);
+    ) external onlyDirector {
+        USDC_token.approve(_targetNFT, mintFee);
         nftIdArr[numberOfNFT] = IContentNFT(_targetNFT).mint(_nftURI);
         nftAddressArr[numberOfNFT] = _targetNFT;
         getNFTId[_targetNFT][nftIdArr[numberOfNFT]] = numberOfNFT;
@@ -273,7 +277,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         uint256 id,
         uint256 initialPrice,
         uint256 salePeriod
-    ) public onlyDirector {
+    ) external onlyDirector {
         require(listedState[id] == false, "Already listed!");
         listedState[id] = true;
         IERC721(nftAddressArr[id]).approve(marketplace, nftIdArr[id]);
@@ -292,7 +296,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         uint256 initialPrice,
         uint256 reducingRate,
         uint256 salePeriod
-    ) public onlyDirector {
+    ) external onlyDirector {
         require(listedState[id] == false, "Already listed!");
         listedState[id] = true;
         IERC721(nftAddressArr[id]).approve(marketplace, nftIdArr[id]);
@@ -310,7 +314,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     function listToOfferingSale(
         uint256 id,
         uint256 initialPrice
-    ) public onlyDirector {
+    ) external onlyDirector {
         require(listedState[id] == false, "Already listed!");
         listedState[id] = true;
         IERC721(nftAddressArr[id]).approve(marketplace, nftIdArr[id]);
@@ -323,7 +327,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     }
 
     // Function to end an English auction
-    function endEnglishAuction(uint256 id) public onlyDirector {
+    function endEnglishAuction(uint256 id) external onlyDirector {
         require(listedState[id] == true, "Not listed!");
         IMarketplace(marketplace).endEnglishAuction(
             nftAddressArr[id],
@@ -333,7 +337,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     }
 
     // Function to withdraw funds from the marketplace
-    function withdrawFromMarketplace() public onlyDirector {
+    function withdrawFromMarketplace() external onlyDirector {
         IMarketplace(marketplace).withdrawFromSeller();
         uint256 startNumber = currentDistributeNumber;
         for (uint256 i = startNumber; i < soldInformation.length; i++) {
@@ -352,6 +356,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     function eachDistribution(uint256 id, uint256 valueParam) internal {
         totalEarning += valueParam;
         uint256 count = Recording[id].length;
+        require(count > 0, "No members to distribute");
         uint256 eachTeamScore = ((valueParam * teamScore) / 100) / count;
         uint256 remainingValue = valueParam - eachTeamScore * count;
         uint256[] memory _revenues = new uint256[](count);
@@ -360,8 +365,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
             if (Recording[id][i]._sum == 0) {
                 _revenues[i] += remainingValue / count;
             } else {
-                _revenues[i] +=
-                    (remainingValue * Recording[id][i]._percent) /
+                _revenues[i] += (remainingValue * Recording[id][i]._percent) /
                     Recording[id][i]._sum;
             }
         }
@@ -381,7 +385,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     }
 
     // Function to cancel the listing of an NFT
-    function cancelListing(uint256 id) public onlyDirector {
+    function cancelListing(uint256 id) external onlyDirector {
         require(listedState[id] == true, "Not Listed!");
         IMarketplace(marketplace).cancelListing(
             nftAddressArr[id],
@@ -393,7 +397,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     // Function to submit a director setting transaction
     function submitDirectorSettingTransaction(
         address _candidate
-    ) public onlyMembers {
+    ) external onlyMembers {
         require(
             isOwner[_candidate] == true && _candidate != director,
             "Select right candidate"
@@ -406,7 +410,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     function confirmDirectorSettingTransaction(
         uint256 index,
         bool state
-    ) public onlyMembers {
+    ) external onlyMembers {
         confirmTransaction_Candidate[msg.sender][index] = state;
         emit DirectorSettingConfirmed(index, msg.sender, state);
     }
@@ -414,7 +418,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     // Function to execute a director setting transaction
     function executeDirectorSettingTransaction(
         uint256 index
-    ) public onlyMembers {
+    ) external onlyMembers {
         uint256 count = getConfirmNumberOfDirectorSettingTransaction(index);
         require(count >= numConfirmationRequired, "Not confirmed enough!!!");
         director = transactions_candidate[index].candidate;
@@ -441,7 +445,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         uint256 tokenId,
         address _buyer,
         uint256 _price
-    ) public onlyMarketplace {
+    ) external onlyMarketplace {
         uint256 id = getNFTId[_tokenContractAddress][tokenId];
         require(listedState[id] == true, "Not listed");
         transactions_offering.push(
@@ -459,13 +463,13 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     function confirmOfferingSaleTransaction(
         uint256 index,
         bool state
-    ) public onlyMembers {
+    ) external onlyMembers {
         confirmTransaction_Offering[msg.sender][index] = state;
         emit OfferingSaleTransactionConfirmed(index, msg.sender, state);
     }
 
     // Function to execute an offering sale transaction
-    function executeOfferingSaleTransaction(uint256 index) public onlyMembers {
+    function executeOfferingSaleTransaction(uint256 index) external onlyMembers {
         uint256 count = getConfirmNumberOfOfferingSaleTransaction(index);
         require(count >= numConfirmationRequired, "Not confirmed enough!!!");
         transactions_offering[index].endState = true;
@@ -496,7 +500,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         return count;
     }
 
-    function submitBurnTransaction(uint256 id) public onlyMembers {
+    function submitBurnTransaction(uint256 id) external onlyMembers {
         require(listedState[id] == false, "Not listed");
         transactions_burn.push(transaction_burn(id, false));
         emit BurnTransactionProposed(id);
@@ -506,13 +510,13 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     function confirmBurnTransaction(
         uint256 index,
         bool state
-    ) public onlyMembers {
+    ) external onlyMembers {
         confirmTransaction_Burn[msg.sender][index] = state;
         emit BurnTransactionConfirmed(index, msg.sender, state);
     }
 
     // Function to execute an offering sale transaction
-    function executeBurnTransaction(uint256 index) public onlyMembers {
+    function executeBurnTransaction(uint256 index) external onlyMembers {
         uint256 count = getConfirmNumberOfBurnTransaction(index);
         require(count >= numConfirmationRequired, "Not confirmed enough!!!");
         transactions_burn[index].endState = true;
@@ -524,8 +528,9 @@ contract CreatorGroup is Initializable, ICreatorGroup {
         uint256 id = transactions_burn[index].id;
         address nftAddress = nftAddressArr[id];
         uint256 tokenId = nftIdArr[id];
-        IERC20(USDC).approve(nftAddress, burnFee);
-        IContentNFT(nftAddress).burn(tokenId);
+        USDC_token.approve(nftAddress, burnFee);
+        uint256 burnedId = IContentNFT(nftAddress).burn(tokenId);
+        require(burnedId == tokenId, "Not match burned ID");
         nftIdArr[id] = nftIdArr[numberOfNFT - 1];
         delete nftIdArr[numberOfNFT - 1];
         nftAddressArr[id] = nftAddressArr[numberOfNFT - 1];
@@ -551,7 +556,7 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     // Function to set the number of confirmations required for transactions
     function setConfirmationRequiredNumber(
         uint256 confirmNumber
-    ) public onlyDirector {
+    ) external onlyDirector {
         require(
             confirmNumber <= numberOfMembers && confirmNumber >= 1,
             "Invalid Number"
@@ -561,12 +566,12 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     }
 
     // Function to get the NFT ID of a specific index
-    function getNftOfId(uint256 index) public view returns (uint256) {
+    function getNftOfId(uint256 index) external view returns (uint256) {
         return nftIdArr[index];
     }
 
     // Function to get the NFT address of a specific index
-    function getNftAddress(uint256 index) public view returns (address) {
+    function getNftAddress(uint256 index) external view returns (address) {
         return nftAddressArr[index];
     }
 
@@ -574,45 +579,67 @@ contract CreatorGroup is Initializable, ICreatorGroup {
     function getRevenueDistribution(
         address one,
         uint256 id
-    ) public view returns (uint256) {
+    ) external view returns (uint256) {
         return revenueDistribution[one][id];
     }
 
     // Function to get the number of sold NFTs
-    function getSoldNumber() public view returns (uint256) {
+    function getSoldNumber() external view returns (uint256) {
         return soldInformation.length;
     }
 
     // Function to get information about a sold NFT at a specific index
     function getSoldInfor(
         uint256 index
-    ) public view returns (soldInfor memory) {
+    ) external view returns (soldInfor memory) {
         return soldInformation[index];
     }
 
     // Function to withdraw funds from the contract
-    function withdraw() public {
+    function withdraw() external {
         uint256 balanceToWithdraw = balance[msg.sender];
         require(balanceToWithdraw > 0, "No balance to withdraw");
         balance[msg.sender] = 0;
-        IERC20(USDC).approve(address(this), balanceToWithdraw);
-        IERC20(USDC).transferFrom(address(this), msg.sender, balanceToWithdraw);
-        emit withdrawHappened(msg.sender, balanceToWithdraw);
+        SafeERC20.safeTransfer(USDC_token, msg.sender, balanceToWithdraw);
+        emit WithdrawHappened(msg.sender, balanceToWithdraw);
     }
 
-    function getNumberOfCandidateTransaction() public view returns (uint256) {
+    function getNumberOfCandidateTransaction() external view returns (uint256) {
         return transactions_candidate.length;
     }
 
     function getNumberOfSaleOfferingTransaction()
-        public
+        external
         view
         returns (uint256)
     {
         return transactions_offering.length;
     }
 
-    function getNumberOfBurnTransaction() public view returns (uint256) {
+    function getNumberOfBurnTransaction() external view returns (uint256) {
         return transactions_burn.length;
+    }
+
+    function uploadMemberNFT(
+        address contractAddress,
+        uint256 tokenId
+    ) external onlyMembers {
+        require(
+            IContentNFT(contractAddress).ownerOf(tokenId) == msg.sender,
+            "Not owner"
+        );
+        require(getNFTId[contractAddress][tokenId] == 0, "Already uploaded");
+        IContentNFT(contractAddress).transferFrom(
+            msg.sender,
+            address(this),
+            tokenId
+        );
+        nftAddressArr[numberOfNFT] = contractAddress;
+        nftIdArr[numberOfNFT] = tokenId;
+        getNFTId[contractAddress][tokenId] = numberOfNFT;
+        record_member memory tmp = record_member(msg.sender, 0, 0);
+        Recording[numberOfNFT].push(tmp);
+        numberOfNFT++;
+        emit UploadNFTFromMember(msg.sender, contractAddress, tokenId);
     }
 }
