@@ -4,6 +4,7 @@ import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ICreatorGroup} from "./interfaces/ICreatorGroup.sol";
+import {IFactory} from "./interfaces/IFactory.sol";
 
 contract ContentNFT is ERC721Upgradeable {
     // Struct to store transfer details
@@ -82,9 +83,10 @@ contract ContentNFT is ERC721Upgradeable {
     /// @notice Function to mint a new NFT token
     /// @param _nftURI URI of the NFT token
     /// @return tokenNumber
-    function mint(string memory _nftURI) external payable returns (uint256) {
+    function mint(string memory _nftURI) external  returns (uint256) {
+        require(IFactory(factory).isCreatorGroup(msg.sender) == true, "Invalid Minter");
         // Mint the NFT token
-        if (mintFee > 0) {
+        if (mintFee != 0) {
             SafeERC20.safeTransferFrom(
                 USDC_token,
                 msg.sender,
@@ -105,9 +107,10 @@ contract ContentNFT is ERC721Upgradeable {
     /// @notice Function to burn an NFT token
     /// @param _tokenId Token ID of the NFT token
     /// @return Burned tokenId
-    function burn(uint256 _tokenId) external payable returns (uint256) {
+    function burn(uint256 _tokenId) external returns (uint256) {
+        require(msg.sender == ownerOf(_tokenId), "only owner can burn");
         // Burn the NFT token
-        if (burnFee > 0) {
+        if (burnFee != 0) {
             SafeERC20.safeTransferFrom(
                 USDC_token,
                 msg.sender,
@@ -115,7 +118,6 @@ contract ContentNFT is ERC721Upgradeable {
                 burnFee
             );
         }
-        require(msg.sender == ownerOf(_tokenId), "only owner can burn");
         _burn(_tokenId);
         emit Burned(msg.sender, _tokenId);
         return _tokenId;
@@ -128,22 +130,13 @@ contract ContentNFT is ERC721Upgradeable {
         tokenNumber++;
     }
 
-    /// @notice Function to get the token URI for a given token ID
-    /// @param _tokenId Token ID of the NFT token
-    /// @return Token URI
-    function tokenURI(
-        uint256 _tokenId
-    ) public view override returns (string memory) {
-        return nftURIPath[_tokenId];
-    }
-
     /// @notice Function to set LoyaltyFee to a given token ID
     /// @param _tokenId Token ID of the NFT token
     /// @param _loyaltyFee Loyalty Fee percentage
     function setLoyaltyFee(uint256 _tokenId, uint256 _loyaltyFee) external {
         require(
             msg.sender == marketplace,
-            "Only Marketplace can set Loyalty Fee."
+            "Invalid caller."
         );
         loyaltyFee[_tokenId] = _loyaltyFee;
         emit LoyaltyFeeChanged(_tokenId, _loyaltyFee);
@@ -159,12 +152,12 @@ contract ContentNFT is ERC721Upgradeable {
         uint256 _tokenId
     ) public override {
         super.transferFrom(_from, _to, _tokenId);
-        if (transferHistory[_tokenId].length > 1) {
+        if (transferHistory[_tokenId].length >= 2) {
             ICreatorGroup(creators[_tokenId]).alarmLoyaltyFeeReceived(
                 _tokenId,
                 loyaltyFee[_tokenId]
             );
-            if (loyaltyFee[_tokenId] > 0) {
+            if (loyaltyFee[_tokenId] != 0) {
                 SafeERC20.safeTransferFrom(
                     USDC_token,
                     msg.sender,
@@ -192,5 +185,14 @@ contract ContentNFT is ERC721Upgradeable {
     /// @return Percentage of the loyalty fee for the given token
     function getLoyaltyFee(uint256 _tokenId) external view returns (uint256) {
         return loyaltyFee[_tokenId];
+    }
+
+    /// @notice Function to get the token URI for a given token ID
+    /// @param _tokenId Token ID of the NFT token
+    /// @return Token URI
+    function tokenURI(
+        uint256 _tokenId
+    ) public view override returns (string memory) {
+        return nftURIPath[_tokenId];
     }
 }
