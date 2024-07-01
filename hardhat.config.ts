@@ -1,6 +1,7 @@
 import { HardhatUserConfig } from "hardhat/config";
 import "dotenv/config";
 
+import "hardhat-contract-sizer";
 import "@nomicfoundation/hardhat-toolbox";
 import "@nomicfoundation/hardhat-chai-matchers";
 
@@ -36,6 +37,11 @@ const config: HardhatUserConfig = {
     },
   },
   gasReporter: {enabled: true},
+  contractSizer: {
+    alphaSort: true,
+    runOnCompile: true,
+    disambiguatePaths: false,
+  },
   sourcify: {
     enabled: true
   }

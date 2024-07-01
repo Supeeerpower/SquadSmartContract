@@ -2,7 +2,7 @@
 pragma solidity ^0.8.19;
 
 interface ICreatorGroup {
-    struct soldInfor {
+    struct SoldInfor {
         uint256 id;
         uint256 price;
         bool distributeState;
@@ -70,7 +70,7 @@ interface ICreatorGroup {
 
     function getSoldInfor(
         uint256 index
-    ) external view returns (soldInfor memory);
+    ) external view returns (SoldInfor memory);
 
     function withdraw() external;
 

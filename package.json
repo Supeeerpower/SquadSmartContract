@@ -24,10 +24,20 @@
     "@types/node": "^20.14.2",
     "dotenv": "^16.4.5",
     "hardhat": "^2.22.5",
-    "typescript": "^5.4.5"
+    "hardhat-contract-sizer": "^2.10.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.5.2"
   },
   "dependencies": {
+    "@nomicfoundation/hardhat-ethers": "^3.0.0",
     "@nomicfoundation/hardhat-network-helpers": "^1.0.10",
-    "@openzeppelin/contracts-upgradeable": "^5.0.2"
+    "@openzeppelin/contracts-upgradeable": "^5.0.2",
+    "@typechain/ethers-v6": "^0.5.0",
+    "@typechain/hardhat": "^9.0.0",
+    "chai": "^4.2.0",
+    "ethers": "^6.1.0",
+    "hardhat-gas-reporter": "^1.0.8",
+    "solidity-coverage": "^0.8.1",
+    "typechain": "^8.3.0"
   }
 }

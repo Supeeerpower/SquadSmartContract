@@ -8,8 +8,6 @@ import "./interfaces/IContentNFT.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 
-
-
 contract Marketplace is ReentrancyGuard {
     // Enum defining different sale types
     enum SaleType {
@@ -140,13 +138,13 @@ contract Marketplace is ReentrancyGuard {
         owner = msg.sender;
         require(_developmentTeam!= address(0), "Invalid address");
         developmentTeam = _developmentTeam;
-        require(_percentForSeller <= 100 && _percentForSeller != 0, "Invalid percentage");
+        require(_percentForSeller <= 10000 && _percentForSeller != 0, "Invalid percentage");
         percentForSeller = _percentForSeller;
         balanceOfDevelopmentTeam = 0;
          require(_USDC!= address(0), "Invalid address");
         USDC = _USDC;
-        USDC_token = IERC20(USDC) ;
-        percentForLoyaltyFee = 5;
+        USDC_token = IERC20(USDC);
+        percentForLoyaltyFee = 500;
     }
 
     /// @notice Function to list an NFT to an English auction
@@ -331,7 +329,7 @@ contract Marketplace is ReentrancyGuard {
     function endEnglishAuction(address _nftContractAddress, uint256 _nftId) external {
         uint256 id;
         bool flg = false;
-        for (uint256 i = 0; i < englishAuctions.length; ++i) {
+        for (uint256 i = 0; i < englishAuctions.length;) {
             uint256 tmp_Id = englishAuction_listedNumber[i];
             if (
                 listedNFTs[tmp_Id].nftContractAddress == _nftContractAddress &&
@@ -340,6 +338,9 @@ contract Marketplace is ReentrancyGuard {
                 id = i;
                 flg = true;
                 break;
+            }
+            unchecked {
+                 ++i;
             }
         }
         require(flg, "Wrong nft");
@@ -366,7 +367,7 @@ contract Marketplace is ReentrancyGuard {
             "No bidder!"
         );
         uint256 loyaltyFee;
-        loyaltyFee = (price * percentForLoyaltyFee) / 100;
+        loyaltyFee = (price * percentForLoyaltyFee) / 10000;
         IContentNFT(contractAddress).setLoyaltyFee(nftId, loyaltyFee);
         if (IContentNFT(contractAddress).owner() == currentOwner)
             loyaltyFee = 0;
@@ -401,7 +402,7 @@ contract Marketplace is ReentrancyGuard {
         address _nftContractAddress,
         uint256 _nftId
     ) private {
-        uint256 value = (_price * percentForSeller) / 100;
+        uint256 value = (_price * percentForSeller) / 10000;
         balanceOfSeller[_seller] += value;
         balanceOfDevelopmentTeam += _price - value;
         ICreatorGroup(_seller).alarmSoldOut(_nftContractAddress, _nftId, value);
@@ -428,7 +429,7 @@ contract Marketplace is ReentrancyGuard {
         require(_sendingValue == price, "Not exact fee");
         if(_sendingValue != 0) SafeERC20.safeTransferFrom(USDC_token, msg.sender, address(this), _sendingValue);
         uint256 loyaltyFee;
-        loyaltyFee = (price * percentForLoyaltyFee) / 100;
+        loyaltyFee = (price * percentForLoyaltyFee) / 10000;
         IContentNFT(contractAddress).setLoyaltyFee(nftId, loyaltyFee);
         if (IContentNFT(contractAddress).owner() == currentOwner)
             loyaltyFee = 0;
@@ -520,7 +521,7 @@ contract Marketplace is ReentrancyGuard {
             "only the nft owner can call this function"
         );
         uint256 loyaltyFee;
-        loyaltyFee = (price * percentForLoyaltyFee) / 100;
+        loyaltyFee = (price * percentForLoyaltyFee) / 10000;
         IContentNFT(contractAddress).setLoyaltyFee(nftId, loyaltyFee);
         if (IContentNFT(contractAddress).owner() == msg.sender)
             loyaltyFee = 0;
@@ -551,7 +552,7 @@ contract Marketplace is ReentrancyGuard {
         );
         uint256 id;
         bool flag = false ;
-        for (uint256 i = 0; i < listedNFTs.length; ++i) {
+        for (uint256 i = 0; i < listedNFTs.length;) {
             if (
                 listedNFTs[i].nftContractAddress == _nftContractAddress &&
                 listedNFTs[i].nftId == _nftId
@@ -559,6 +560,9 @@ contract Marketplace is ReentrancyGuard {
                 id = i;
                 flag = true ;
                 break;
+            }
+            unchecked{
+                 ++i;
             }
         }
         require(flag == true, "Not listed yet");
@@ -591,7 +595,7 @@ contract Marketplace is ReentrancyGuard {
         uint256 _nftId
     ) external {
         bool flag = false;
-        for (uint256 i = 0; i < listedNFTs.length; ++i) {
+        for (uint256 i = 0; i < listedNFTs.length;) {
             if (
                 listedNFTs[i].nftContractAddress == _nftContractAddress &&
                 listedNFTs[i].nftId == _nftId &&
@@ -601,10 +605,16 @@ contract Marketplace is ReentrancyGuard {
                 flag = true;
                 break;
             }
+            unchecked {
+                ++i;
+            }
         }
         require(flag == true, "Invalid address for adding revenue");
-        for (uint256 i = 0; i < _members.length; ++i) {
+        for (uint256 i = 0; i < _members.length;) {
             balanceOfUser[_members[i]] += _values[i];
+            unchecked {
+                ++i;
+            }
         }
     }
 
