@@ -62,6 +62,20 @@ contract CreatorGroupTest is BaseTest {
         vm.assertLt(numMembersAfter, numMembersBefore, "Member was not removed");
     }
 
+    function testOnlyDirectorCanRemoveMember(address _member) public {
+        vm.prank(member1);
+        vm.expectRevert("Only director can call this function");
+        ICreatorGroup(groupAddr).removeMember(_member2);
+    }
+
+    function testDirectorCanRemoveMember() public {
+        vm.prank(director);
+        uint256 numMembersBefore = ICreatorGroup(groupAddr).numberOfMembers();
+        ICreatorGroup(groupAddr).removeMember(_member1);
+        uint256 numMembersAfter = ICreatorGroup(groupAddr).numberOfMembers();
+        vm.assertLt(numMembersAfter, numMembersBefore, "Member was not removed");
+    }
+
     function testFailLeaveGroup(address _user) public {
         vm.prank(_user);
         vm.expectRevert("Only members can call this function");
@@ -259,6 +273,54 @@ contract CreatorGroupTest is BaseTest {
         vm.assertEq(50, teamScore, "Team score was not setted");
     }
 
-    // Todo
-    // Need to add withdraw function test after update logic
+    function testMemberCanReceiveProfitAfterLeft() public {
+        vm.startPrank(owner);
+        usdc.transfer(_buyer1, 300000);
+        usdc.transfer(_buyer2, 300000);
+        vm.stopPrank();
+        vm.prank(director);
+        ICreatorGroup(groupAddr).removeMember(member1);
+        vm.startPrank(_buyer1);
+        market.makeBidToOfferingSale(0, 5000);
+        market.makeBidToOfferingSale(1, 6000);
+        market.makeBidToOfferingSale(2, 6000);
+        market.makeBidToOfferingSale(3, 7000);
+        ICreatorGroup(groupAddr).executeOfferingSaleTransaction(0);
+        ICreatorGroup(groupAddr).executeOfferingSaleTransaction(1);
+        vm.stopPrank();
+        vm.startPrank(_buyer2);
+        market.makeBidToOfferingSale(0, 5500);
+        market.makeBidToOfferingSale(1, 6500);
+        market.makeBidToOfferingSale(2, 6500);
+        market.makeBidToOfferingSale(3, 7500);
+        ICreatorGroup(groupAddr).executeOfferingSaleTransaction(2);
+        ICreatorGroup(groupAddr).executeOfferingSaleTransaction(3);
+        vm.stopPrank();
+
+        vm.startPrank(_buyer1);        
+        uint256 buyer1BeforeBalance = usdc.balanceOf(_buyer1);
+        market.withdrawFromOfferingSale(2);
+        market.withdrawFromOfferingSale(3);
+        uint256 buyer1AfterBalance = usdc.balanceOf(_buyer1);
+        vm.assertLt(buyer1BeforeBalance, buyer1AfterBalance);
+        vm.stopPrank();
+
+        vm.startPrank(_buyer2);        
+        uint256 buyer2BeforeBalance = usdc.balanceOf(_buyer2);
+        market.withdrawFromOfferingSale(0);
+        market.withdrawFromOfferingSale(1);
+        uint256 buyer2AfterBalance = usdc.balanceOf(_buyer2);
+        vm.assertLt(buyer2BeforeBalance, buyer2AfterBalance);
+        vm.stopPrank();
+        
+        vm.prank(director);
+        ICreatorGroup(groupAddr).withdrawFromMarketplace();
+
+        vm.startPrank(member1);
+        uint256 member1BeforeBalance = usdc.balanceOf(member1);
+        ICreatorGroup(groupAddr).withdraw();
+        uint256 member1AfterBalance = usdc.balanceOf(member1);
+        vm.assertLt(member1BeforeBalance, member1AfterBalance);
+        vm.stopPrank();
+    }
 }

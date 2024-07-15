@@ -178,7 +178,24 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
         delete isOwner[_oldMember];
         uint256 id = 0;
         for (uint256 i = 0; i < members.length;) {
-            if (members[i] == _oldMember) id = i;
+            if (members[i] == _oldMember)  id = i;
+            unchecked {
+                ++i;
+            }
+        }
+        members[id] = members[numberOfMembers - 1];
+        delete members[numberOfMembers - 1];
+        numberOfMembers--;
+    }
+
+    /// @notice Function to remove a member by director
+    function removeMember(address _member) external onlyDirector {
+        address _oldMember = _member;
+        require(isOwner[_oldMember], "Remove only member");
+        delete isOwner[_oldMember];
+        uint256 id = 0;
+        for (uint256 i = 0; i < members.length;) {
+            if (members[i] == _oldMember)  id = i;
             unchecked {
                 ++i;
             }
@@ -471,7 +488,7 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
     }
 
     /// @notice Function to withdraw funds from the contract
-    function withdraw() external onlyMembers nonReentrant {
+    function withdraw() external nonReentrant {
         uint256 balanceToWithdraw = balance[msg.sender];
         require(balanceToWithdraw != 0, "No balance to withdraw");
         balance[msg.sender] = 0;
