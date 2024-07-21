@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
+import "forge-std/console.sol";
 import {BaseTest} from "../base/Base.t.sol";
 import {ICreatorGroup} from "../interfaces/ICreatorGroup.sol";
 import {IContentNFT} from "../interfaces/IContentNFT.sol";
@@ -12,63 +13,49 @@ contract FactoryTest is BaseTest {
     address public member3 = address(8);
     address public firstGroupAddr;
     address public secondGroupAddr;
+
     function setUp() public override {
         super.setUp();
     }
 
-    function testCreateGroups() public {
-        string memory firstGroupName = "First Group Name";
-        string memory firstGroupDescription = "First Group Description";
-        string memory secondGroupName = "Second Group Name";
-        string memory secondGroupDescription = "Second Group Description";
-        address[] memory members = new address[](3);
-        members[0] = director;
-        members[1] = member1;
-        members[2] = member2;
-        vm.prank(director);
-        factory.createGroup(
-            firstGroupName,
-            firstGroupDescription,
-            members
-        );
-        firstGroupAddr = factory.getCreatorGroupAddress(0);
-        factory.createGroup(
-            secondGroupName, 
-            secondGroupDescription ,
-            members
-        );
-    }
-
     function testFailCreateGroup() public {
         string memory groupName = "Group Name";
-        string memory groupDescription = "Group Description";        
         address[] memory members = new address[](3);
         members[0] = director;
         members[1] = member1;
         members[2] = member2;
         vm.prank(member1);
         vm.expectRevert("The first member must be the caller");
-        factory.createGroup(
-            groupName,
-            groupDescription,
-            members
-        );
+        factory.createGroup(groupName, members);
         vm.expectRevert("At least one owner is required");
         address[] memory members1 = new address[](3);
-        factory.createGroup(
-            groupName,
-            groupDescription,
-            members1
-        );
+        factory.createGroup(groupName, members1);
         vm.stopPrank();
     }
 
+    function testCreateGroups() public {
+        string memory firstGroupName = "First Group Name";
+        string memory secondGroupName = "Second Group Name";
+        address[] memory members = new address[](3);
+        members[0] = director;
+        members[1] = member1;
+        members[2] = member2;
+        vm.prank(director);
+        factory.createGroup(firstGroupName, members);
+        console.log("first group %s", factory.numberOfCreators());
+        firstGroupAddr = factory.getCreatorGroupAddress(0);
+        vm.prank(director);
+        factory.createGroup(secondGroupName, members);
+    }
+
     function testSetTeamScore(uint256 _score) public {
-        vm.assume(_score >= 0);
+        vm.assume(_score > 0 && _score < 100);
+        testCreateGroups();
         vm.startPrank(owner);
-        factory.setTeamScoreForCreatorGroup(0, 30);
+        factory.setTeamScoreForCreatorGroup(0, _score);
         uint256 newScore = ICreatorGroup(firstGroupAddr).teamScore();
         vm.assertEq(_score, newScore);
+        vm.stopPrank();
     }
 
     function testFailSetTeamScore() public {

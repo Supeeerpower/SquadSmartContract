@@ -21,26 +21,13 @@ interface ICreatorGroup {
 
     function setTeamScore(uint256 value) external;
 
-    function alarmSoldOut(
-        address contractAddress,
-        uint256 nftId,
-        uint256 price
-    ) external;
+    function alarmSoldOut(address contractAddress, uint256 nftId, uint256 price) external;
 
     function mint(string memory _nftURI) external;
 
-    function listToEnglishAuction(
-        uint256 id,
-        uint256 initialPrice,
-        uint256 salePeriod
-    ) external;
+    function listToEnglishAuction(uint256 id, uint256 initialPrice, uint256 salePeriod) external;
 
-    function listToDutchAuction(
-        uint256 id,
-        uint256 initialPrice,
-        uint256 reducingRate,
-        uint256 salePeriod
-    ) external;
+    function listToDutchAuction(uint256 id, uint256 initialPrice, uint256 reducingRate, uint256 salePeriod) external;
 
     function listToOfferingSale(uint256 id, uint256 initialPrice) external;
 
@@ -50,12 +37,8 @@ interface ICreatorGroup {
 
     function setNewDirector(address _candidate) external;
 
-    function submitOfferingSaleTransaction(
-        uint256 _marketId,
-        uint256 tokenId,
-        address _buyer,
-        uint256 _price
-    ) external;
+    function submitOfferingSaleTransaction(uint256 _marketId, uint256 tokenId, address _buyer, uint256 _price)
+        external;
 
     function executeOfferingSaleTransaction(uint256 index) external;
 
@@ -63,14 +46,9 @@ interface ICreatorGroup {
 
     function getSoldNumber() external view returns (uint256);
 
-    function getRevenueDistribution(
-        address one,
-        uint256 id
-    ) external view returns (uint256);
+    function getRevenueDistribution(address one, uint256 id) external view returns (uint256);
 
-    function getSoldInfor(
-        uint256 index
-    ) external view returns (SoldInfor memory);
+    function getSoldInfor(uint256 index) external view returns (SoldInfor memory);
 
     function withdraw() external;
 
@@ -97,4 +75,6 @@ interface ICreatorGroup {
     function teamScore() external view returns (uint256);
 
     function numberOfNFT() external view returns (uint256);
+
+    function removeMember(address _member) external;
 }

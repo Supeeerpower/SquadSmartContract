@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.13;
 
-import {Test, console} from "forge-std/Test.sol";
+import {Test} from "forge-std/Test.sol";
 import {ContentNFT} from "../../src/ContentNFT.sol";
+import {ICreatorGroup} from "../interfaces/ICreatorGroup.sol";
 import {Marketplace} from "../../src/Marketplace.sol";
 import {USDCToken} from "../../src/USDC.sol";
 import {Factory} from "../../src/Factory.sol";
@@ -15,13 +16,15 @@ contract BaseTest is Test, GasSnapshot {
     USDCToken public usdc;
     Factory public factory;
     CreatorGroup public group;
+    address public ZERO = 0x0000000000000000000000000000000000000000;
+    address public groupAddr;
     address public developmentTeam = address(1);
     address public director = address(2);
     address public user1 = address(3);
     address public member1 = address(4);
     address public member2 = address(5);
     address public proxy;
-    uint256 public percentForSeller=1000;
+    uint256 public percentForSeller = 1000;
     uint256 public mintFee = 10;
     uint256 public burnFee = 10;
     uint256 public USDC_TOTAL_SUPPLY = 1e10;
@@ -32,21 +35,11 @@ contract BaseTest is Test, GasSnapshot {
         vm.startPrank(owner);
         content = new ContentNFT();
         usdc = new USDCToken(USDC_TOTAL_SUPPLY);
-        market = new Marketplace(
-            developmentTeam, 
-            percentForSeller, 
-            address(usdc)
-        );
+        market = new Marketplace(developmentTeam, percentForSeller, address(usdc));
         content = new ContentNFT();
         group = new CreatorGroup();
         factory = new Factory(
-            address(group),
-            address(content),
-            address(market),
-            developmentTeam,
-            mintFee,
-            burnFee,
-            address(usdc)
+            address(group), address(content), address(market), developmentTeam, mintFee, burnFee, address(usdc)
         );
         vm.stopPrank();
     }
@@ -66,5 +59,35 @@ contract BaseTest is Test, GasSnapshot {
         vm.assertEq(burnFee, _burnFee, "BurnFee is not same");
         address _usdc = factory.USDC();
         vm.assertEq(address(usdc), _usdc, "USDC address is not same");
+    }
+
+    function createGroup(string memory _name) public {
+        address[] memory members = new address[](3);
+        members[0] = director;
+        members[1] = member1;
+        members[2] = member2;
+        vm.prank(director);
+        factory.createGroup(_name, members);
+        groupAddr = factory.getCreatorGroupAddress(0);
+        vm.prank(director);
+        usdc.transfer(groupAddr, 1_000);
+    }
+
+    function mintNFT() public {
+        createGroup("First");
+        string memory firstUrl = "first image";
+        string memory secondUrl = "second image";
+        string memory thirdUrl = "third image";
+        string memory fourthUrl = "fourth image";
+        string memory fifthUrl = "fifth image";
+        vm.startPrank(director);
+        uint256 balance = usdc.balanceOf(director);
+
+        ICreatorGroup(groupAddr).mint(firstUrl);
+        ICreatorGroup(groupAddr).mint(secondUrl);
+        ICreatorGroup(groupAddr).mint(thirdUrl);
+        ICreatorGroup(groupAddr).mint(fourthUrl);
+        ICreatorGroup(groupAddr).mint(fifthUrl);
+        vm.stopPrank();
     }
 }

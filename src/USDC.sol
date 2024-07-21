@@ -6,7 +6,7 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract USDCToken is ERC20 {
     /// @notice Constrcutor of Test USDC Token
     /// @param initialSupply The initial total supply of USDC Token
-    constructor(uint256 initialSupply) ERC20("USD Coin", "USDC") payable {
+    constructor(uint256 initialSupply) payable ERC20("USD Coin", "USDC") {
         _mint(msg.sender, initialSupply * 10 ** decimals());
     }
 
@@ -23,6 +23,7 @@ contract USDCToken is ERC20 {
     function burn(address account, uint256 amount) public {
         _burn(account, amount);
     }
+
     function decimals() public pure override returns (uint8) {
         return 6;
     }

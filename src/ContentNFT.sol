@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
+
 import "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -14,6 +15,7 @@ contract ContentNFT is ERC721Upgradeable {
         uint256 timestamp;
     }
     // State variables
+
     address public owner; // Address of the contract owner
     address public factory; // Address of the factory contract
     mapping(uint256 => string) private nftURIPath; // Mapping to store NFT URI paths
@@ -27,14 +29,12 @@ contract ContentNFT is ERC721Upgradeable {
     mapping(uint256 => uint256) private loyaltyFee; // Mapping to store the loyalty fee percentage for each NFT token ID
     mapping(uint256 => TransferHistory[]) private transferHistory; // Mapping to store transfer history
     // Events
-    event minted(
-        address indexed from,
-        uint256 indexed tokenId,
-        string indexed nftURI
-    );
+
+    event minted(address indexed from, uint256 indexed tokenId, string indexed nftURI);
     event Burned(address indexed from, uint256 indexed tokenId);
     event LoyaltyFeeChanged(uint256 indexed tokenId, uint256 indexed newFee);
     // modifier
+
     modifier onlyOwner() {
         require(msg.sender == owner, "Only owner can call this function");
         _;
@@ -78,12 +78,7 @@ contract ContentNFT is ERC721Upgradeable {
     function mint(string memory _nftURI) external onlyOwner returns (uint256) {
         // Mint the NFT token
         if (mintFee != 0) {
-            SafeERC20.safeTransferFrom(
-                USDC_token,
-                msg.sender,
-                factory,
-                mintFee
-            );
+            SafeERC20.safeTransferFrom(USDC_token, msg.sender, factory, mintFee);
         }
         _mint(msg.sender, tokenNumber);
         _setTokenURI(_nftURI);
@@ -98,12 +93,7 @@ contract ContentNFT is ERC721Upgradeable {
         require(msg.sender == ownerOf(_tokenId), "only owner can burn");
         // Burn the NFT token
         if (burnFee != 0) {
-            SafeERC20.safeTransferFrom(
-                USDC_token,
-                msg.sender,
-                factory,
-                burnFee
-            );
+            SafeERC20.safeTransferFrom(USDC_token, msg.sender, factory, burnFee);
         }
         _burn(_tokenId);
         emit Burned(msg.sender, _tokenId);
@@ -130,35 +120,19 @@ contract ContentNFT is ERC721Upgradeable {
     /// @param _from Previous owner of the NFT
     /// @param _to New owner of the NFT
     /// @param _tokenId Token ID of the NFT token
-    function transferFrom(
-        address _from,
-        address _to,
-        uint256 _tokenId
-    ) public override {
+    function transferFrom(address _from, address _to, uint256 _tokenId) public override {
         super.transferFrom(_from, _to, _tokenId);
         if (loyaltyFee[_tokenId] != 0 && _from != owner) {
-            SafeERC20.safeTransferFrom(
-                USDC_token,
-                msg.sender,
-                owner,
-                loyaltyFee[_tokenId]
-            );
-            ICreatorGroup(owner).alarmLoyaltyFeeReceived(
-                _tokenId,
-                loyaltyFee[_tokenId]
-            );
+            SafeERC20.safeTransferFrom(USDC_token, msg.sender, owner, loyaltyFee[_tokenId]);
+            ICreatorGroup(owner).alarmLoyaltyFeeReceived(_tokenId, loyaltyFee[_tokenId]);
         }
-        transferHistory[_tokenId].push(
-            TransferHistory(_from, _to, block.timestamp)
-        );
+        transferHistory[_tokenId].push(TransferHistory(_from, _to, block.timestamp));
     }
 
     /// @notice Function to get the transfer history for a given token ID
     /// @param _tokenId Token ID of the NFT token
     /// @return TransferHistory of the given token
-    function getTransferHistory(
-        uint256 _tokenId
-    ) external view returns (TransferHistory[] memory) {
+    function getTransferHistory(uint256 _tokenId) external view returns (TransferHistory[] memory) {
         return transferHistory[_tokenId];
     }
 
@@ -172,9 +146,7 @@ contract ContentNFT is ERC721Upgradeable {
     /// @notice Function to get the token URI for a given token ID
     /// @param _tokenId Token ID of the NFT token
     /// @return Token URI
-    function tokenURI(
-        uint256 _tokenId
-    ) public view override returns (string memory) {
+    function tokenURI(uint256 _tokenId) public view override returns (string memory) {
         return nftURIPath[_tokenId];
     }
 }

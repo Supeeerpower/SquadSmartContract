@@ -4,31 +4,24 @@ pragma solidity ^0.8.13;
 import {BaseTest} from "../base/Base.t.sol";
 import {ICreatorGroup} from "../interfaces/ICreatorGroup.sol";
 import {IContentNFT} from "../interfaces/IContentNFT.sol";
+import "forge-std/console.sol";
 
 contract ContentNFTTest is BaseTest {
-    address public groupAddr;
     address public collectionAddr;
-
-    event GroupCreated(
-        address indexed creator,
-        string indexed name,
-        string indexed description,
-        address newDeployedAddress
-    );
 
     function setUp() public override {
         super.setUp();
+        vm.prank(owner);
+        usdc.transfer(director, 10_000);
     }
 
-    function testCreateNewCollection(string memory _name, string memory _description) public {
+    function testCreateNewCollection(string memory _name) public {
         address[] memory members = new address[](3);
         members[0] = director;
         members[1] = member1;
         members[2] = member2;
         vm.prank(director);
-        // vm.expectEmit(true, true, true, address(factory));
-        // emit GroupCreated(director, _name, _description);
-        factory.createGroup(_name, _description, members);
+        factory.createGroup(_name, members);
         groupAddr = factory.getCreatorGroupAddress(0);
         collectionAddr = ICreatorGroup(groupAddr).collectionAddress();
         string memory name = IContentNFT(collectionAddr).name();
@@ -39,18 +32,22 @@ contract ContentNFTTest is BaseTest {
         vm.assertEq(groupAddr, collectionOwner, "Collection owner is not correct");
     }
 
-    function testFailCreateNewCollection(string memory _name, string memory _description) public {
+    function testFailCreateNewCollection(string memory _name) public {
         address[] memory members = new address[](2);
         members[0] = member1;
         members[1] = member2;
         vm.prank(member1);
         vm.expectRevert();
-        factory.createGroup(_name, _description, members);
+        factory.createGroup(_name, members);
     }
-    
+
     function testMint(string memory _url) public {
+        createGroup("First");
+        vm.prank(owner);
+        usdc.transfer(groupAddr, 5000);
         vm.prank(director);
         ICreatorGroup(groupAddr).mint(_url);
+        collectionAddr = ICreatorGroup(groupAddr).collectionAddress();
         uint256 tokenId = IContentNFT(collectionAddr).balanceOf(address(groupAddr));
         vm.assertEq(tokenId, 1, "First token was not minted");
         address owner = IContentNFT(collectionAddr).ownerOf(tokenId);
@@ -60,22 +57,31 @@ contract ContentNFTTest is BaseTest {
     }
 
     function testBurn() public {
+        createGroup("First");
+        mintNFT();
+        vm.prank(owner);
+        usdc.transfer(groupAddr, 5000);
+        uint256 numberBurntBefore = ICreatorGroup(groupAddr).numberOfBurnedNFT();
         vm.prank(director);
         ICreatorGroup(groupAddr).executeBurnTransaction(1);
-        uint256 afterTokenId = IContentNFT(collectionAddr).balanceOf(address(groupAddr));
-        vm.assertEq(0, afterTokenId, "TokenId must be zero");
+        uint256 numberBurntAfter = ICreatorGroup(groupAddr).numberOfBurnedNFT();
+        vm.assertGt(numberBurntAfter, numberBurntBefore, "Token not burnt!");
     }
 
-    function testFailBurn(uint256 _tokenId) public {
-        vm.assume(_tokenId > 1);
+    function testNFTDoesNotExist(uint256 _tokenId) public {
+        vm.assume(_tokenId > 6);
+        createGroup("First");
+        mintNFT();
         vm.expectRevert("NFT does not exist!");
         vm.prank(director);
         ICreatorGroup(groupAddr).executeBurnTransaction(_tokenId);
     }
 
-    function testFailBurn() public {
+    function testOnlyDirectorCanCallBurn() public {
+        createGroup("First");
+        mintNFT();
         vm.prank(user1);
-        vm.expectRevert("only owner can burn");
+        vm.expectRevert("Only director can call this function");
         ICreatorGroup(groupAddr).executeBurnTransaction(1);
     }
 }
