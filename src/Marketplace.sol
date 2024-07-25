@@ -68,7 +68,7 @@ contract Marketplace is ReentrancyGuard {
     dutchAuction[] public dutchAuctions; // Array to store instances of Dutch auction contracts
     mapping(uint256 => uint256) public dutchAuction_listedNumber; // Mapping to track the number of items listed in each Dutch auction
     mapping(uint256 => mapping(address => uint256)) public offeringSale_balancesForWithdraw; // Mapping to store balances available for withdrawal in offering sales
-    mapping(uint256 => mapping(address => uint256)) offeringSale_currentBids; // Mapping to store current bids in offering sales
+    mapping(uint256 => mapping(address => uint256)) public offeringSale_currentBids; // Mapping to store current bids in offering sales
     offeringSale[] public offeringSales; // Array to store instances of offering sale contracts
     mapping(uint256 => uint256) public offeringSale_listedNumber; // Mapping to track the number of items listed in each offering sale
     //event
@@ -331,7 +331,7 @@ contract Marketplace is ReentrancyGuard {
         uint256 nftId = listedNFTs[listedId].nftId;
         address currentOwner = listedNFTs[listedId].currentOwner;
         uint256 price = offeringSales[_id].initialPrice;
-        require(_sendingValue >= price, "You should send a price that is more than current price.");
+        require(_sendingValue > price, "You should send a price that is more than current price.");
         offeringSales[_id].bidNumber++;
         if (_sendingValue != 0) SafeERC20.safeTransferFrom(USDC_token, msg.sender, address(this), _sendingValue);
         offeringSale_currentBids[_id][msg.sender] = _sendingValue;

@@ -81,8 +81,6 @@ contract BaseTest is Test, GasSnapshot {
         string memory fourthUrl = "fourth image";
         string memory fifthUrl = "fifth image";
         vm.startPrank(director);
-        uint256 balance = usdc.balanceOf(director);
-
         ICreatorGroup(groupAddr).mint(firstUrl);
         ICreatorGroup(groupAddr).mint(secondUrl);
         ICreatorGroup(groupAddr).mint(thirdUrl);

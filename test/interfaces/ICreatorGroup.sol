@@ -8,6 +8,14 @@ interface ICreatorGroup {
         bool distributeState;
     }
 
+    struct TransactionOffering {
+        uint256 marketId;
+        uint256 id;
+        uint256 price;
+        address buyer;
+        bool endState;
+    }
+
     function initialize(
         string memory _name,
         string memory _description,
@@ -77,4 +85,12 @@ interface ICreatorGroup {
     function numberOfNFT() external view returns (uint256);
 
     function removeMember(address _member) external;
+
+    function marketplace() external view returns (address);
+
+    function getTransactionsOffering(uint256 index) external view returns (TransactionOffering memory);
+
+    function currentDistributeNumber() external view returns (uint256);
+
+    function getOfferingTransactionNumber() external view returns (uint256);
 }

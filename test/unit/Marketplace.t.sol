@@ -40,6 +40,7 @@ contract MarketplaceTest is BaseTest {
         usdc.transfer(director, 10000);
         usdc.transfer(firstGroupAddr, 10000);
         usdc.transfer(secondGroupAddr, 10000);
+        vm.stopPrank();
     }
 
     function testListNFTtoknen() public {

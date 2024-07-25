@@ -460,6 +460,10 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
         return soldInformation[index];
     }
 
+    function getTransactionsOffering(uint256 index) external view returns (TransactionOffering memory) {
+        return transactions_offering[index];
+    }
+
     function getOfferingTransactionNumber() external view returns (uint256) {
         return transactions_offering.length;
     }
