@@ -4,12 +4,14 @@ pragma solidity ^0.8.19;
 import "@openzeppelin/contracts/proxy/Clones.sol";
 import "./interfaces/ICreatorGroup.sol";
 import "./interfaces/IContentNFT.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/proxy/utils/UUPSUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/access/OwnableUpgradeable.sol";
+import "@openzeppelin/contracts-upgradeable/proxy/utils/Initializable.sol";
 
-contract Factory {
+contract Factory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     // State variables
-    address public owner; // Address of the contract owner
     address public developmentTeam; // Address of the development team associated with the contract
     address public marketplace; // Address of the marketplace contract
     uint256 public numberOfCreators; // Number of creators associated with the contract
@@ -20,7 +22,7 @@ contract Factory {
     uint256 public mintFee; // Fee required for minting NFTs
     uint256 public burnFee; // Fee required for burning NFTs
     address public USDC; // Address of the USDC token contract
-    IERC20 public immutable USDC_token; // USDC token contract
+    IERC20 public USDC_token; // USDC token contract
 
     // Events
     event GroupCreated(address indexed creator, string indexed name, address newDeployedAddress);
@@ -29,10 +31,6 @@ contract Factory {
     event TeamScoreChanged(address indexed teamMember, uint256 indexed score);
     // Modifier to restrict access to only the contract owner
 
-    modifier onlyOwner() {
-        require(msg.sender == owner, "Only owner can call this function");
-        _;
-    }
     /// @notice Constructor to initialize contract variables
     /// @param _implementGroup Address of the implementation contract for creating groups
     /// @param _implementContent Context of the implementation contract for NFT Collection
@@ -42,7 +40,7 @@ contract Factory {
     /// @param _burnFee Fee required for burning NFTs
     /// @param _USDC Address of the USDC token contract
 
-    constructor(
+    function initialize(
         address _implementGroup,
         address _implementContent,
         address _marketplace,
@@ -50,8 +48,7 @@ contract Factory {
         uint256 _mintFee,
         uint256 _burnFee,
         address _USDC
-    ) {
-        owner = msg.sender;
+    ) public initializer {
         require(_marketplace != address(0), "Address cannot be 0");
         marketplace = _marketplace;
         require(_developmentTeam != address(0), "Address cannot be 0");
@@ -66,7 +63,10 @@ contract Factory {
         require(_USDC != address(0), "Address cannot be 0");
         USDC = _USDC;
         USDC_token = IERC20(_USDC);
+        __Ownable_init(msg.sender);
     }
+
+    function _authorizeUpgrade(address newImplementation) internal override onlyOwner {}
 
     /// @notice Function to create a new group
     /// @param _name The name of the collection

@@ -2,6 +2,7 @@
 pragma solidity ^0.8.13;
 
 import {Test} from "forge-std/Test.sol";
+import {ERC1967Proxy} from "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import {ContentNFT} from "../../src/ContentNFT.sol";
 import {ICreatorGroup} from "../interfaces/ICreatorGroup.sol";
 import {Marketplace} from "../../src/Marketplace.sol";
@@ -15,6 +16,7 @@ contract BaseTest is Test, GasSnapshot {
     Marketplace public market;
     USDCToken public usdc;
     Factory public factory;
+    Factory public impleFactory;
     CreatorGroup public group;
     address public ZERO = 0x0000000000000000000000000000000000000000;
     address public groupAddr;
@@ -38,7 +40,12 @@ contract BaseTest is Test, GasSnapshot {
         market = new Marketplace(developmentTeam, percentForSeller, address(usdc));
         content = new ContentNFT();
         group = new CreatorGroup();
-        factory = new Factory(
+
+        impleFactory = new Factory();
+        ERC1967Proxy proxy = new ERC1967Proxy(address(impleFactory), "");
+
+        factory = Factory(address(proxy));
+        factory.initialize(
             address(group), address(content), address(market), developmentTeam, mintFee, burnFee, address(usdc)
         );
         vm.stopPrank();
