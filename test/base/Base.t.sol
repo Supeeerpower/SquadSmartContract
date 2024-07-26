@@ -25,7 +25,6 @@ contract BaseTest is Test, GasSnapshot {
     address public user1 = address(3);
     address public member1 = address(4);
     address public member2 = address(5);
-    address public proxy;
     uint256 public percentForSeller = 1000;
     uint256 public mintFee = 10;
     uint256 public burnFee = 10;

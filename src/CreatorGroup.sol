@@ -10,6 +10,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import "forge-std/console.sol";
 
 contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
     // Struct for offering transactions
@@ -46,6 +47,8 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
     uint256 public totalEarning; //Total Earning
     uint256 public numberOfNFT; // Number of NFTs in the group
     uint256 public numberOfBurnedNFT;
+    uint256 public minimumAuctionPeriod = 1 hours;
+    uint256 public maximumAuctionPeriod = 7 hours;
     mapping(uint256 => uint256) public nftIdArr; // Mapping of NFT IDs
     mapping(uint256 => bool) public listedState; // Mapping to track the listing state of NFTs
     mapping(uint256 => bool) public soldOutState; // Mapping to track the sold state of NFTs
@@ -206,6 +209,10 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
     function listToEnglishAuction(uint256 _id, uint256 _initialPrice, uint256 _salePeriod) external onlyDirector {
         require(_id <= numberOfNFT - 1 && _id >= 0, "NFT does not exist!");
         require(listedState[_id] == false, "Already listed!");
+        require(
+            _salePeriod < minimumAuctionPeriod || _salePeriod > maximumAuctionPeriod,
+            "Auction period is not correct"
+        );
         listedState[_id] = true;
         IERC721(collectionAddress).approve(marketplace, nftIdArr[_id]);
         IMarketplace(marketplace).listToEnglishAuction(collectionAddress, nftIdArr[_id], _initialPrice, _salePeriod);
@@ -302,6 +309,21 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
         require(isOwner[_candidate] == true, "Only members can be director!");
         director = _candidate;
         emit DirectorSettingExecuted(director);
+    }
+
+    /// @notice Function to set minimum auction period
+    /// @param _minimumPeriod New minimum period
+    function setMinimumAuctionPeriod(uint256 _minimumPeriod) external onlyDirector {
+        require(_minimumPeriod != 0 , "Minimum period can not be zero");
+        minimumAuctionPeriod = _minimumPeriod;
+    }
+
+    /// @notice Function to set minimum auction period
+    /// @param _maximumPeriod New maximum period
+    function setMaximumAuctionPeriod(uint256 _maximumPeriod) external onlyDirector {
+        require(_maximumPeriod != 0 , "Maximum period can not be zero");
+        require(_maximumPeriod > minimumAuctionPeriod, "Maximum period must be greater than minimum period");
+        maximumAuctionPeriod = _maximumPeriod;
     }
 
     /// @notice Function to burn a NFT

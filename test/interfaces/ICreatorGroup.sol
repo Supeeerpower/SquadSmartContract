@@ -29,6 +29,10 @@ interface ICreatorGroup {
 
     function setTeamScore(uint256 value) external;
 
+    function setMinimumAuctionPeriod(uint256 newPeriod) external;
+
+    function setMaximumAuctionPeriod(uint256 newPeriod) external;
+
     function alarmSoldOut(address contractAddress, uint256 nftId, uint256 price) external;
 
     function mint(string memory _nftURI) external;
@@ -93,4 +97,8 @@ interface ICreatorGroup {
     function currentDistributeNumber() external view returns (uint256);
 
     function getOfferingTransactionNumber() external view returns (uint256);
+
+    function minimumAuctionPeriod() external view returns (uint256);
+
+    function maximumAuctionPeriod() external view returns (uint256);
 }

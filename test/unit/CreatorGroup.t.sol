@@ -250,6 +250,34 @@ contract CreatorGroupTest is BaseTest {
         vm.assertEq(member1, updatedDirector, "Director was not updated");
     }
 
+    function testSetNewMinimumPeriod(uint256 _newPeriod) public {
+        vm.assume(_newPeriod != 0);
+        createGroup("First");
+        vm.prank(director);
+        ICreatorGroup(groupAddr).setMinimumAuctionPeriod(_newPeriod);
+        uint256 newMinimum = ICreatorGroup(groupAddr).minimumAuctionPeriod();
+        vm.assertEq(_newPeriod, newMinimum);
+    }
+
+    function testSetNewMaximumPeriod(uint256 _newPeriod) public {
+        createGroup("First");
+        uint256 minimum = ICreatorGroup(groupAddr).minimumAuctionPeriod();
+        vm.assume(_newPeriod != 0 && _newPeriod > minimum);
+        vm.prank(director);
+        ICreatorGroup(groupAddr).setMaximumAuctionPeriod(_newPeriod);
+        uint256 newMaximum = ICreatorGroup(groupAddr).maximumAuctionPeriod();
+        vm.assertEq(_newPeriod, newMaximum);
+    }
+
+    function testFailedSetNewMaximumPeriod(uint256 _newPeriod) public {
+        createGroup("First");
+        uint256 minimum = ICreatorGroup(groupAddr).minimumAuctionPeriod();
+        vm.assume(_newPeriod  <= minimum);
+        vm.expectRevert("Maximum period must be greater than minimum period");
+        vm.prank(director);
+        ICreatorGroup(groupAddr).setMaximumAuctionPeriod(_newPeriod);
+    }
+
     function testFailedSetNewDirector() public {
         createGroup("First");
         vm.expectRevert("Only director can call this function");
