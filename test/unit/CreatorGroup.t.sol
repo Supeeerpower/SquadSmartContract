@@ -118,9 +118,7 @@ contract CreatorGroupTest is BaseTest {
         mintNFT();
         vm.startPrank(director);
         vm.expectRevert("Auction period is not correct");
-        ICreatorGroup(groupAddr).listToEnglishAuction(
-            0, initialPriceForEnglishAuction, salePeriodForEnglishAuction
-        );
+        ICreatorGroup(groupAddr).listToEnglishAuction(0, initialPriceForEnglishAuction, salePeriodForEnglishAuction);
         vm.expectRevert("Already listed!");
         ICreatorGroup(groupAddr).listToEnglishAuction(0, initialPriceForEnglishAuction, salePeriodForEnglishAuction);
         vm.expectRevert("NFT does not exist!");
@@ -142,9 +140,7 @@ contract CreatorGroupTest is BaseTest {
     function testFailListDutchAuction(uint256 _randomReducing) public {
         vm.startPrank(director);
         vm.expectRevert("Auction period is not correct");
-        ICreatorGroup(groupAddr).listToDutchAuction(
-            1, initialPriceForDutchAuction, reducingRateForDutchAuction, 100
-        );
+        ICreatorGroup(groupAddr).listToDutchAuction(1, initialPriceForDutchAuction, reducingRateForDutchAuction, 100);
         vm.expectRevert("Already listed!");
         ICreatorGroup(groupAddr).listToDutchAuction(
             1, initialPriceForDutchAuction, reducingRateForDutchAuction, salePeriodForDutchAuction

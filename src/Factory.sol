@@ -130,7 +130,7 @@ contract Factory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Function to set minimum auction period
     /// @param _minimumPeriod New minimum period
     function setMinimumAuctionPeriod(uint256 _minimumPeriod) external onlyOwner {
-        require(_minimumPeriod != 0 , "Minimum period can not be zero");
+        require(_minimumPeriod != 0, "Minimum period can not be zero");
         require(_minimumPeriod < maximumAuctionPeriod, "Minimum period must be less than maximum period");
         minimumAuctionPeriod = _minimumPeriod;
     }
@@ -138,7 +138,7 @@ contract Factory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @notice Function to set minimum auction period
     /// @param _maximumPeriod New maximum period
     function setMaximumAuctionPeriod(uint256 _maximumPeriod) external onlyOwner {
-        require(_maximumPeriod != 0 , "Maximum period can not be zero");
+        require(_maximumPeriod != 0, "Maximum period can not be zero");
         require(_maximumPeriod > minimumAuctionPeriod, "Maximum period must be greater than minimum period");
         maximumAuctionPeriod = _maximumPeriod;
     }

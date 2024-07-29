@@ -7,6 +7,6 @@ interface IFactory {
     function setTeamScoreForCreatorGroup(uint256 id, uint256 score) external;
     function isCreatorGroup(address _groupAddress) external view returns (bool);
     function getCreatorGroupAddress(uint256 id) external view returns (address);
-    function minimumAuctionPeriod() external view returns(uint256);
-    function maximumAuctionPeriod() external view returns(uint256);
+    function minimumAuctionPeriod() external view returns (uint256);
+    function maximumAuctionPeriod() external view returns (uint256);
 }

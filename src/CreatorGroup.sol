@@ -210,10 +210,7 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
 
         uint256 minPeriod = IFactory(factory).minimumAuctionPeriod();
         uint256 maxPeriod = IFactory(factory).maximumAuctionPeriod();
-        require(
-            _salePeriod >= minPeriod && _salePeriod <= maxPeriod,
-            "Auction period is not correct"
-        );
+        require(_salePeriod >= minPeriod && _salePeriod <= maxPeriod, "Auction period is not correct");
         listedState[_id] = true;
         IERC721(collectionAddress).approve(marketplace, nftIdArr[_id]);
         IMarketplace(marketplace).listToEnglishAuction(collectionAddress, nftIdArr[_id], _initialPrice, _salePeriod);
@@ -234,10 +231,7 @@ contract CreatorGroup is Initializable, ICreatorGroup, ReentrancyGuard {
         require(_initialPrice > _reducingRate * (_salePeriod / 3600), "Invalid Dutch information!");
         uint256 minPeriod = IFactory(factory).minimumAuctionPeriod();
         uint256 maxPeriod = IFactory(factory).maximumAuctionPeriod();
-        require(
-            _salePeriod >= minPeriod && _salePeriod <= maxPeriod,
-            "Auction period is not correct"
-        );
+        require(_salePeriod >= minPeriod && _salePeriod <= maxPeriod, "Auction period is not correct");
         listedState[_id] = true;
         IERC721(collectionAddress).approve(marketplace, nftIdArr[_id]);
         IMarketplace(marketplace).listToDutchAuction(
