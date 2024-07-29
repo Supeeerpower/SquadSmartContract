@@ -23,6 +23,8 @@ contract Factory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     uint256 public burnFee; // Fee required for burning NFTs
     address public USDC; // Address of the USDC token contract
     IERC20 public USDC_token; // USDC token contract
+    uint256 public minimumAuctionPeriod;
+    uint256 public maximumAuctionPeriod;
 
     // Events
     event GroupCreated(address indexed creator, string indexed name, address newDeployedAddress);
@@ -63,6 +65,8 @@ contract Factory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
         require(_USDC != address(0), "Address cannot be 0");
         USDC = _USDC;
         USDC_token = IERC20(_USDC);
+        minimumAuctionPeriod = 1 hours;
+        maximumAuctionPeriod = 7 hours;
         __Ownable_init(msg.sender);
     }
 
@@ -121,5 +125,21 @@ contract Factory is Initializable, OwnableUpgradeable, UUPSUpgradeable {
     /// @return The address of the creator group
     function getCreatorGroupAddress(uint256 _id) external view returns (address) {
         return Creators[_id];
+    }
+
+    /// @notice Function to set minimum auction period
+    /// @param _minimumPeriod New minimum period
+    function setMinimumAuctionPeriod(uint256 _minimumPeriod) external onlyOwner {
+        require(_minimumPeriod != 0 , "Minimum period can not be zero");
+        require(_minimumPeriod < maximumAuctionPeriod, "Minimum period must be less than maximum period");
+        minimumAuctionPeriod = _minimumPeriod;
+    }
+
+    /// @notice Function to set minimum auction period
+    /// @param _maximumPeriod New maximum period
+    function setMaximumAuctionPeriod(uint256 _maximumPeriod) external onlyOwner {
+        require(_maximumPeriod != 0 , "Maximum period can not be zero");
+        require(_maximumPeriod > minimumAuctionPeriod, "Maximum period must be greater than minimum period");
+        maximumAuctionPeriod = _maximumPeriod;
     }
 }

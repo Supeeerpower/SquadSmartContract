@@ -21,7 +21,7 @@ contract CreatorGroupTest is BaseTest {
     function setUp() public override {
         super.setUp();
         initialPriceForEnglishAuction = 1000;
-        salePeriodForEnglishAuction = 2000;
+        salePeriodForEnglishAuction = 4000;
         initialPriceForDutchAuction = 1000;
         reducingRateForDutchAuction = 100;
         salePeriodForDutchAuction = 3600;
@@ -112,7 +112,15 @@ contract CreatorGroupTest is BaseTest {
     }
 
     function testFailListEnglishAuction() public {
+        vm.prank(owner);
+        factory.setMinimumAuctionPeriod(5000);
+        createGroup("First");
+        mintNFT();
         vm.startPrank(director);
+        vm.expectRevert("Auction period is not correct");
+        ICreatorGroup(groupAddr).listToEnglishAuction(
+            0, initialPriceForEnglishAuction, salePeriodForEnglishAuction
+        );
         vm.expectRevert("Already listed!");
         ICreatorGroup(groupAddr).listToEnglishAuction(0, initialPriceForEnglishAuction, salePeriodForEnglishAuction);
         vm.expectRevert("NFT does not exist!");
@@ -133,6 +141,10 @@ contract CreatorGroupTest is BaseTest {
 
     function testFailListDutchAuction(uint256 _randomReducing) public {
         vm.startPrank(director);
+        vm.expectRevert("Auction period is not correct");
+        ICreatorGroup(groupAddr).listToDutchAuction(
+            1, initialPriceForDutchAuction, reducingRateForDutchAuction, 100
+        );
         vm.expectRevert("Already listed!");
         ICreatorGroup(groupAddr).listToDutchAuction(
             1, initialPriceForDutchAuction, reducingRateForDutchAuction, salePeriodForDutchAuction
@@ -248,34 +260,6 @@ contract CreatorGroupTest is BaseTest {
         ICreatorGroup(groupAddr).setNewDirector(member1);
         address updatedDirector = ICreatorGroup(groupAddr).director();
         vm.assertEq(member1, updatedDirector, "Director was not updated");
-    }
-
-    function testSetNewMinimumPeriod(uint256 _newPeriod) public {
-        vm.assume(_newPeriod != 0);
-        createGroup("First");
-        vm.prank(director);
-        ICreatorGroup(groupAddr).setMinimumAuctionPeriod(_newPeriod);
-        uint256 newMinimum = ICreatorGroup(groupAddr).minimumAuctionPeriod();
-        vm.assertEq(_newPeriod, newMinimum);
-    }
-
-    function testSetNewMaximumPeriod(uint256 _newPeriod) public {
-        createGroup("First");
-        uint256 minimum = ICreatorGroup(groupAddr).minimumAuctionPeriod();
-        vm.assume(_newPeriod != 0 && _newPeriod > minimum);
-        vm.prank(director);
-        ICreatorGroup(groupAddr).setMaximumAuctionPeriod(_newPeriod);
-        uint256 newMaximum = ICreatorGroup(groupAddr).maximumAuctionPeriod();
-        vm.assertEq(_newPeriod, newMaximum);
-    }
-
-    function testFailedSetNewMaximumPeriod(uint256 _newPeriod) public {
-        createGroup("First");
-        uint256 minimum = ICreatorGroup(groupAddr).minimumAuctionPeriod();
-        vm.assume(_newPeriod  <= minimum);
-        vm.expectRevert("Maximum period must be greater than minimum period");
-        vm.prank(director);
-        ICreatorGroup(groupAddr).setMaximumAuctionPeriod(_newPeriod);
     }
 
     function testFailedSetNewDirector() public {

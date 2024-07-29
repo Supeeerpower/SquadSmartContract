@@ -97,8 +97,4 @@ interface ICreatorGroup {
     function currentDistributeNumber() external view returns (uint256);
 
     function getOfferingTransactionNumber() external view returns (uint256);
-
-    function minimumAuctionPeriod() external view returns (uint256);
-
-    function maximumAuctionPeriod() external view returns (uint256);
 }

@@ -42,7 +42,6 @@ contract FactoryTest is BaseTest {
         members[2] = member2;
         vm.prank(director);
         factory.createGroup(firstGroupName, members);
-        console.log("first group %s", factory.numberOfCreators());
         firstGroupAddr = factory.getCreatorGroupAddress(0);
         vm.prank(director);
         factory.createGroup(secondGroupName, members);
@@ -68,5 +67,45 @@ contract FactoryTest is BaseTest {
         vm.prank(owner);
         vm.expectRevert("Invalid creato group");
         factory.setTeamScoreForCreatorGroup(10, 50);
+    }
+
+    function testSetNewMinimumPeriod(uint256 _newPeriod) public {
+        uint256 maximum = factory.maximumAuctionPeriod();
+        vm.assume(_newPeriod != 0 && _newPeriod < maximum);
+        vm.prank(owner);
+        factory.setMinimumAuctionPeriod(_newPeriod);
+        uint256 newMinimum = factory.minimumAuctionPeriod();
+        vm.assertEq(_newPeriod, newMinimum);
+    }
+
+    function testSetNewMaximumPeriod(uint256 _newPeriod) public {
+        uint256 minimum = factory.minimumAuctionPeriod();
+        vm.assume(_newPeriod != 0 && _newPeriod > minimum);
+        vm.prank(owner);
+        factory.setMaximumAuctionPeriod(_newPeriod);
+        uint256 newMaximum = factory.maximumAuctionPeriod();
+        vm.assertEq(_newPeriod, newMaximum);
+    }
+
+    function testCannotSetMaximumIflessMinimum(uint256 _newPeriod) public {
+        uint256 minimum = factory.minimumAuctionPeriod();
+        vm.assume(_newPeriod != 0 && _newPeriod <= minimum);
+        vm.prank(owner);
+        vm.expectRevert("Maximum period must be greater than minimum period");
+        factory.setMaximumAuctionPeriod(_newPeriod);
+    }
+
+    function testCannotSetMinimumIfGreaterThanMaximum(uint256 _newPeriod) public {
+        uint256 maximum = factory.maximumAuctionPeriod();
+        vm.assume(_newPeriod != 0 && _newPeriod >= maximum);
+        vm.expectRevert("Minimum period must be less than maximum period");
+        vm.prank(owner);
+        factory.setMinimumAuctionPeriod(_newPeriod);
+    }
+
+    function testOnlyOwnerCanSetPeriod(uint256 _newPeriod) public {
+        vm.expectRevert();
+        vm.prank(director);
+        factory.setMinimumAuctionPeriod(_newPeriod);
     }
 }

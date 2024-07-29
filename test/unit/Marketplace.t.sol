@@ -20,7 +20,7 @@ contract MarketplaceTest is BaseTest {
     function setUp() public override {
         super.setUp();
         initialPriceForEnglishAuction = 1000;
-        salePeriodForEnglishAuction = 2000;
+        salePeriodForEnglishAuction = 4000;
         initialPriceForSale = 1000;
         string memory firstGroup = "First Group";
         string memory secondGroup = "Second Group";
